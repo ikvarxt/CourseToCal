@@ -4,8 +4,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
-import net.fortuna.ical4j.model.Calendar
+import net.fortuna.ical4j.model.component.VAlarm
 import net.fortuna.ical4j.model.component.VEvent
+import net.fortuna.ical4j.model.Calendar
 import net.fortuna.ical4j.model.DateTime
 import net.fortuna.ical4j.model.Recur
 import net.fortuna.ical4j.model.TimeZoneRegistryImpl
@@ -16,6 +17,7 @@ import net.fortuna.ical4j.data.CalendarOutputter
 import java.io.FileOutputStream
 import java.util.GregorianCalendar
 import java.time.LocalDateTime
+import java.time.Duration
 
 
 fun main() {
@@ -36,6 +38,12 @@ fun main() {
 val firstMon: LocalDateTime = LocalDateTime.of(2021, 3, 8, 0, 0, 0)
 val courseTimeSchedule = arrayOf("08:00", "09:55", "13:30", "15:25", "18:30")
 const val COURSE_DURATION = 95
+
+// 是否开启上课提醒，默认开启
+const val ALARM = true
+
+// 提醒通知提前时长
+const val ALARM_TIME: Long = 15
 
 data class Account(val studentID: String, val password: String)
 
@@ -161,6 +169,17 @@ fun generateICalendar(lessons: List<Lesson>): Calendar {
             val description = Description("教师：${lesson.teacher}，学分：${lesson.credit}")
             // split drop the room code like "EY103"
             val location = Location(schedule.room.split("(")[0])
+            // reminder
+            // 确实能用了！！
+            if (ALARM) {
+                val dur = Duration.ofMinutes(-ALARM_TIME)
+                val reminder = VAlarm(dur)
+                reminder.properties.apply {
+                    add(Action("DISPLAY"))
+                    add(Description("${lesson.name} 还有 $ALARM_TIME 分钟就要上课啦！"))
+                }
+                course.alarms.add(reminder)
+            }
 
             // add properties to single course event
             course.properties.add(timezone.vTimeZone.timeZoneId)
